@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Weather_Station.MainPage">
+
+    <ScrollView>
+
+        <VerticalStackLayout
+            Padding="20,0"
+            Spacing="25"
+            VerticalOptions="CenterAndExpand" >
+            
+            <Label
+                Text="Podaj adres urządznia"
+                Style="{StaticResource Headline}"
+                SemanticProperties.HeadingLevel="Level1" />
+            
+            <Grid ColumnDefinitions="*,*,*,*">
+                <Entry x:Name="textBoxDeviceAddress1" MaxLength="3" VerticalTextAlignment="Center" Placeholder="" Grid.Column="0" />
+                <Entry x:Name="textBoxDeviceAddress2" MaxLength="3" VerticalTextAlignment="Center" Placeholder="" Grid.Column="1" />
+                <Entry x:Name="textBoxDeviceAddress3" MaxLength="3" VerticalTextAlignment="Center" Placeholder="" Grid.Column="2" />
+                <Entry x:Name="textBoxDeviceAddress4" MaxLength="3" VerticalTextAlignment="Center" Placeholder="" Grid.Column="3" />
+            </Grid>
+            
+            <Label
+                Text="Lub wybierz z listy... "
+                Style="{StaticResource SubHeadline}"
+                SemanticProperties.HeadingLevel="Level2" />
+
+            <Button
+                x:Name="ScanButton"
+                Text="Skanuj" 
+                Clicked="buttonScanForDevice_Click"
+                HorizontalOptions="Fill" />
+
+            <ListView x:Name="ListViewLocalAdresses" SelectionMode="Single"
+                      ItemSelected="ListViewLocalAddresses_SelectedIndexChanged">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <TextCell Text="{Binding .}" />
+                    </DataTemplate>   
+                </ListView.ItemTemplate>
+            </ListView>
+            
+            <Label x:Name="labelConnecting"
+                   IsVisible="False"
+                   Text="Łączenie" 
+                   Style="{StaticResource SubHeadline}"
+                   />
+            
+            <Button
+                x:Name="ConnectButton"
+                Text="Połącz" 
+                Clicked="buttonConnect_Click"
+                HorizontalOptions="Fill" />
+            
+        </VerticalStackLayout>
+        
+    </ScrollView>
+
+</ContentPage>
