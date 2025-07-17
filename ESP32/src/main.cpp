@@ -486,6 +486,7 @@ void setup() {
   AHT20_begin();
   BMP280_begin();
   startMeasurementAHT20();
+  Serial.print("DeBUG TEST IF serial Monitor WORKs ");
 }
 
 void loop() {
