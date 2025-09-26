@@ -7,6 +7,7 @@
 #include <BLEUtils.h>
 #include <BLEServer.h>
 #include "AHT20_BMP280_CONTROL.h"
+#include "internal_temp.h"
 
 //  Heartbeat
 unsigned long HeartbeatMillis = 0;
@@ -95,14 +96,14 @@ void updateBLEData() {
   }
 }
 
-void list(){
-  std::string response = "";
-  for (int i = 0; i < temperature_vector.size(); i++) {
-    response += "Temp: " + std::to_string(temperature_vector[i]) + "  ";
-    response += "Pres: " + std::to_string(pressure_vector[i]) + "  ";
-    response += "Hum: " + std::to_string(humidity_vector[i]) + " \n";
-  }
-}
+// void list(){
+//   std::string response = "";
+//   for (int i = 0; i < temperature_vector.size(); i++) {
+//     response += "Temp: " + std::to_string(temperature_vector[i]) + "  ";
+//     response += "Pres: " + std::to_string(pressure_vector[i]) + "  ";
+//     response += "Hum: " + std::to_string(humidity_vector[i]) + " \n";
+//   }
+// }
 
 
 void setup() {
