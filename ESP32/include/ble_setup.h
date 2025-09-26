@@ -4,7 +4,8 @@
 // Functions
 void initBLE();
 void updateBLEData();
-
+void broadcastSensorData();
+void broadcastInDeviceName();
 
 
 #endif // BLE_SETUP_H
