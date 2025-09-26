@@ -8,6 +8,15 @@
 #include <BLEServer.h>
 #include "AHT20_BMP280_CONTROL.h"
 
+//  Heartbeat
+unsigned long HeartbeatMillis = 0;
+const long Heartbeatinterval = 5000;
+
+float delta = 0;
+float minDelta = 10;
+float maxDelta = 0;
+
+
 // BLE UUIDs for MeteoStation service
 #define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define TEMP_CHAR_UUID      "beb5483e-36e1-4688-b7f5-ea07361b26a8"
@@ -171,6 +180,7 @@ void loop() {
     Serial.print(" | Max Delta: ");
     Serial.println(maxDelta);
     
+    delay(5000); // Small delay to ensure stability
     // Update BLE characteristics with new sensor data
     updateBLEData();
   }

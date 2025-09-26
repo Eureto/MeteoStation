@@ -44,14 +44,6 @@ extern bool sensor_busy;
 extern unsigned long measurementDelayAHT20;
 /*******************************/
 
-// General Variables
-extern float delta;
-extern float minDelta;
-extern float maxDelta;
-
-// Heartbeat Variables
-extern unsigned long HeartbeatMillis;
-extern const long Heartbeatinterval;
 
 // Function Declarations
 /*******************************/

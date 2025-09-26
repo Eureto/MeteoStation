@@ -39,16 +39,6 @@ unsigned long measurementDelayAHT20 = 0;
 /*******************************/
 
 
-float delta = 0;
-float minDelta = 10;
-float maxDelta = 0;
-
-
-//  Heartbeat
-unsigned long HeartbeatMillis = 0;
-const long Heartbeatinterval = 5000;
-
-
 void AHT20_begin() {
   Wire.beginTransmission(0x38);
   Wire.write(0xBE);  // 0xBE --> init register for AHT2x
