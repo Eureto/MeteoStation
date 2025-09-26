@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <HardwareSerial.h>
 #include <queue>
 #include <Wire.h>
 #include <vector>
