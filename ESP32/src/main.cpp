@@ -12,14 +12,10 @@
 unsigned long HeartbeatMillis = 0;
 const long Heartbeatinterval = 5000;
 
-float delta = 0;
-float minDelta = 10;
-float maxDelta = 0;
-
-
-std::vector<float> temperature_vector;
-std::vector<float> pressure_vector;
-std::vector<float> humidity_vector;
+// disabled because i use BLE advertising. Can be used if method 3 (ble_setup.cpp) used.
+//std::vector<float> temperature_vector;
+//std::vector<float> pressure_vector;
+//std::vector<float> humidity_vector;
 
 
 void setup() {
@@ -46,49 +42,40 @@ void setup() {
 }
 
 void loop() {
-  // show bluetooth mac address
-  Serial.println("Device address : " + String(BLEDevice::getAddress().toString().c_str()));
-  Serial.println("Device address : " + String(BLEDevice::getAddress().toString().c_str()));
-
-
-  checkbusyAHT20();
-  getDataAHT20();
-
+  
   unsigned long currentMillis = millis();
   if (currentMillis - HeartbeatMillis >= Heartbeatinterval) {
     HeartbeatMillis = currentMillis;
+    
+    Serial.println("Device address : " + String(BLEDevice::getAddress().toString().c_str()));
 
     //BMP280
     readTemperatureBMP280();
-    temperature_vector.push_back(temperature_AHT20);
-    Serial.println("BMP280\nTemperature: " + String(temperature_BMP280) + " C");
-
     readPressureBMP280();
-    pressure_vector.push_back(pressure);
-    Serial.println("Pressure: " + String(pressure) + " hPa");
- 
+
+    Serial.print("BMP280:  Temperature: " + String(temperature_BMP280) + " C");
+    Serial.println("  Pressure: " + String(pressure) + " hPa");
+
+    //temperature_vector.push_back(temperature_AHT20);
+    //pressure_vector.push_back(pressure);
+    
     // AHT20
     startMeasurementAHT20();
-    humidity_vector.push_back(humidity);
-    Serial.println("AHT20\nHumidity: " + String(humidity) + " %");
+    delay(150);
+    checkbusyAHT20(); 
+    getDataAHT20();
+
+    Serial.print("AHT20:  Humidity: " + String(humidity) + " %");
     Serial.println("Temperature: " + String(temperature_AHT20) + " C ");
-
-    // Calculate the delta between the temperature values AHT20 and BMP280
-    delta = (temperature_BMP280 > temperature_AHT20) ? (temperature_BMP280 - temperature_AHT20) : (temperature_AHT20 - temperature_BMP280);
-
-    if (delta < minDelta) { minDelta = delta; }
-    if (delta > maxDelta) { maxDelta = delta; }
-    Serial.print("Temperatur Delta : " + String(delta) + " C");  
-    Serial.print(" | Min Delta: " + String(minDelta) + " C");
-    Serial.print(" | Max Delta: " + String(maxDelta) + " C\n");
+    //humidity_vector.push_back(humidity);
     
     // Update BLE characteristics with new sensor data
-    //updateBLEData();
-    // broadcastSensorData();
-    broadcastInDeviceName();
+    //updateBLEData(); 
+    broadcastSensorData(); // this one works with app
+    //broadcastInDeviceName();
 
-    Serial.println("Entering light sleep.......................");
     // Enter light sleep for to cool down the CPU
+    Serial.println("Entering light sleep.......................\n\n");
     esp_sleep_enable_timer_wakeup(5000000); // 5 second
     esp_light_sleep_start();
   }

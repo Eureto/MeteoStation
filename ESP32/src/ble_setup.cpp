@@ -6,10 +6,10 @@
 #include "AHT20_BMP280_CONTROL.h"
 
 // BLE UUIDs for MeteoStation service
-#define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-#define TEMP_CHAR_UUID      "beb5483e-36e1-4688-b7f5-ea07361b26a8"
-#define HUMIDITY_CHAR_UUID  "beb5483f-36e1-4688-b7f5-ea07361b26a8" 
-#define PRESSURE_CHAR_UUID  "beb54840-36e1-4688-b7f5-ea07361b26a8"
+//#define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+//#define TEMP_CHAR_UUID      "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+//#define HUMIDITY_CHAR_UUID  "beb5483f-36e1-4688-b7f5-ea07361b26a8" 
+//#define PRESSURE_CHAR_UUID  "beb54840-36e1-4688-b7f5-ea07361b26a8"
 
 // BLE variables
 BLEServer* pServer = nullptr;
@@ -17,15 +17,16 @@ BLECharacteristic* pTempCharacteristic = nullptr;
 BLECharacteristic* pHumidityCharacteristic = nullptr;
 BLECharacteristic* pPressureCharacteristic = nullptr;
 
-// Method 1
+// Method 1 - method that works with app 
 // Initializing BLE Advertising
+// also works well
 BLEAdvertising* pAdvertising = nullptr;
 void initBLE() {
   Serial.println("Starting BLE broadcast mode!");
   
   BLEDevice::init("MeteoStation");
   
-  // Set BLE power to minimum for power saving
+  // Set BLE power to minimum for power saving (-12 dBm)
   esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_N12);
   
   pAdvertising = BLEDevice::getAdvertising();
@@ -33,31 +34,30 @@ void initBLE() {
   Serial.println("BLE advertising initialized!");
   // Serial.println("Device address : " + String(BLEDevice::getAddress().toString().c_str()));
 }
+
 void broadcastSensorData() {
   if (pAdvertising != nullptr) {
     // Create custom advertising data with sensor values
     // Format: [temp_int][temp_dec][humidity_int][humidity_dec][pressure_int][pressure_dec]
-    
-    int temp_int = (int)temperature_BMP280;
-    int temp_dec = (int)((temperature_BMP280 - temp_int) * 100);
+
+    float tempAVG = (temperature_AHT20 + temperature_BMP280) / 2;
+
+    int temp_int = (int)tempAVG;
+    int temp_dec = (int)((tempAVG - temp_int) * 100);
     int humidity_int = (int)humidity;
     int humidity_dec = (int)((humidity - humidity_int) * 100);
     int pressure_int = (int)pressure;
     int pressure_dec = (int)((pressure - pressure_int) * 100);
     
-    std::string sensorData = "";
-    sensorData += (char)temp_int;
-    sensorData += (char)temp_dec;
-    sensorData += (char)humidity_int; 
-    sensorData += (char)humidity_dec;
-    sensorData += (char)(pressure_int >> 8);  // High byte
-    sensorData += (char)(pressure_int & 0xFF); // Low byte
-    sensorData += (char)pressure_dec;
-    
+    std::string sensorData = "Temp_" + std::to_string(temp_int) + "." + std::to_string(temp_dec) +
+                              "Hum_" + std::to_string(humidity_int) + "." + std::to_string(humidity_dec) +
+                              "Pres_" + std::to_string(pressure_int) + "." + std::to_string(pressure_dec);
+        
+    Serial.println("Broadcasting sensor data: " + String(sensorData.c_str()));
     pAdvertising->stop();
 
     BLEAdvertisementData advData;
-    advData.setManufacturerData(sensorData);
+    advData.setManufacturerData(sensorData); // maximum 29 characters (tested) it may depend on something idk
     pAdvertising->setAdvertisementData(advData);
 
     pAdvertising->start();
@@ -68,12 +68,13 @@ void broadcastSensorData() {
 
 //Method 2
 // Broadcasting sensor data in device name
+// this one works well and uses little power
 void broadcastInDeviceName() {
   if (pAdvertising != nullptr) {
     // Create device name with sensor data
-    String deviceName = "Meteo_T" + String((int)temperature_BMP280) + 
-                       "_H" + String((int)humidity) + 
-                       "_P" + String((int)pressure);
+    String deviceName = "MS_" + String((int)temperature_BMP280) + "_" + String((int)((temperature_BMP280 - (int)temperature_BMP280) * 100)) + "C" + 
+                        String((int)humidity) + "_" + String((int)((humidity - (int)humidity) * 100)) + "H" + 
+                        String((int)pressure) + "_" + String((int)((pressure - (int)pressure) * 100)) + "P";
     
     pAdvertising->stop();
     BLEDevice::deinit();
@@ -89,7 +90,8 @@ void broadcastInDeviceName() {
 
 // Method 3
 // Initialize BLE with MeteoStation service and characteristics
-// uses more power
+// uses more power and does not work if device is using sleep mode
+// my esp32-c3 overheats using this method
 // void initBLE() {
 //   Serial.println("Starting BLE work!");
   

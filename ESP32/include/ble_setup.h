@@ -6,6 +6,7 @@ void initBLE();
 void updateBLEData();
 void broadcastSensorData();
 void broadcastInDeviceName();
+void broadcastExtendedSensorData();
 
 
 #endif // BLE_SETUP_H

@@ -38,6 +38,18 @@ bool sensor_busy = false;
 unsigned long measurementDelayAHT20 = 0;
 /*******************************/
 
+// Scan for I2C devices
+void scanI2CDevices(){
+  Serial.println("Scanning I2C devices...");
+  for (byte address = 1; address < 127; address++) {
+    Wire.beginTransmission(address);
+    if (Wire.endTransmission() == 0) {
+      Serial.print("I2C device found at address 0x");
+      if (address < 16) Serial.print("0");
+      Serial.println(address, HEX);
+    }
+  }
+}
 
 void AHT20_begin() {
   Wire.beginTransmission(0x38);

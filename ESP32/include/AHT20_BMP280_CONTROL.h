@@ -33,7 +33,7 @@ extern int16_t _dig_P8;
 extern int16_t _dig_P9;
 /*******************************/
 
-
+void scanI2CDevices();
 
 //AHT20 Sensor Variables
 /*******************************/
