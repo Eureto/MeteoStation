@@ -1,4 +1,4 @@
-package com.example.meteostation
+package mobileapp.MeteoStation
 
 import org.junit.Test
 

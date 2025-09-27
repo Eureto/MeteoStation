@@ -2,16 +2,32 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="android.permission.BLUETOOTH"
-        android:maxSdkVersion="30" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
-        android:maxSdkVersion="30" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Request legacy Bluetooth permissions -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+
+    <!--
+        Needed for BLE scanning on Android 11 (API 30) and lower.
+        For Android 12 (API 31) and above, BLUETOOTH_SCAN is used instead.
+        The maxSdkVersion attribute ensures this permission is only requested on
+        older versions.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
+
+    <!--
+        Needed for BLE scanning on Android 12 (API 31) and higher.
+        You may need to add "neverForLocation" to your BLE scan settings on these APIs.
+    -->
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+
+    <!--
+        Although we are not connecting, some systems may require this permission
+        to get device details like the name during a scan.
+    -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <!-- Explicitly declare that the app uses BLE -->
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
-    <uses-feature android:name="android.hardware.bluetooth" android:required="true"/>
 
     <application
         android:allowBackup="true"
@@ -21,20 +37,16 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.MeteoStation">
+        android:theme="@style/Theme.MobileApp">
         <activity
             android:name=".MainActivity"
-            android:exported="true"
-            android:screenOrientation="portrait">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity android:name=".DataDisplayActivity" />
-
+        <activity android:name=".DeviceActivity" />
     </application>
 
 </manifest>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    tools:context=".DeviceActivity">
+
+    <!-- Section for Live Data -->
+    <TextView
+        android:id="@+id/deviceNameLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Device Name"
+        android:textSize="20sp"
+        android:textStyle="bold"/>
+
+    <TextView
+        android:id="@+id/connectionStatusLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Status: Searching..."
+        android:layout_marginBottom="16dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="24dp">
+
+        <TextView
+            android:id="@+id/temperatureLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="-- °C"
+            android:textSize="22sp" />
+        <TextView
+            android:id="@+id/humidityLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="-- %"
+            android:textSize="22sp" />
+        <TextView
+            android:id="@+id/pressureLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="-- hPa"
+            android:textSize="22sp" />
+    </LinearLayout>
+
+    <!-- Charts Section -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Temperature History"
+        android:textStyle="bold"/>
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/tempChart"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Humidity History"
+        android:layout_marginTop="16dp"
+        android:textStyle="bold"/>
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/humidityChart"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Pressure History"
+        android:layout_marginTop="16dp"
+        android:textStyle="bold"/>
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/pressureChart"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
+    <Button
+        android:id="@+id/forgetDeviceButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Forget Device and Rescan"
+        android:layout_marginTop="16dp"/>
+
+</LinearLayout>
+

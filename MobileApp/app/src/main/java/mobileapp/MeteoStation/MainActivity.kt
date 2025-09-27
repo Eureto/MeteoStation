@@ -1,0 +1,307 @@
+package mobileapp.MeteoStation
+
+import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
+import android.content.Context
+import android.content.Intent
+import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.ListView
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+
+class MainActivity : AppCompatActivity() {
+
+    // --- Bluetooth & Scanning Properties ---
+    private val bluetoothAdapter: BluetoothAdapter by lazy {
+        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        bluetoothManager.adapter
+    }
+    private val bleScanner by lazy { bluetoothAdapter.bluetoothLeScanner }
+    private var isScanning = false
+    private val handler = Handler(Looper.getMainLooper())
+
+    // --- UI Properties ---
+    private lateinit var scanButton: Button
+    private lateinit var deviceListView: ListView
+    private lateinit var deviceListAdapter: ArrayAdapter<String>
+
+    // --- Data & State Properties ---
+    private val discoveredDevices = mutableMapOf<String, ScanResultData>()
+    private val SCAN_PERIOD: Long = 10000 // Stops scanning after 10 seconds.
+    private lateinit var sharedPreferences: SharedPreferences
+    // --- Permissions ---
+    private val PERMISSIONS_REQUEST_CODE = 101
+    private val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        arrayOf(
+            Manifest.permission.BLUETOOTH_SCAN,
+            Manifest.permission.BLUETOOTH_CONNECT
+        )
+    } else {
+        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        sharedPreferences = getSharedPreferences("ble_scanner_prefs", Context.MODE_PRIVATE)
+        val savedDeviceAddress = sharedPreferences.getString("device_address", null)
+
+        if (savedDeviceAddress != null) {
+            // If a device is remembered, go directly to the device screen
+            val intent = Intent(this, DeviceActivity::class.java)
+            startActivity(intent)
+            finish() // Finish MainActivity so user can't go back to it
+            return
+        }
+
+        setContentView(R.layout.activity_main)
+
+        // Initialize UI components
+        scanButton = findViewById(R.id.scanButton)
+        deviceListView = findViewById(R.id.deviceListView)
+
+        // Setup the custom adapter for the list view
+        deviceListAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, mutableListOf())
+        deviceListView.adapter = deviceListAdapter
+
+        scanButton.setOnClickListener {
+            if (isScanning) {
+                stopBleScan()
+            } else {
+                startBleScan()
+            }
+        }
+        deviceListView.setOnItemClickListener { _, _, position, _ ->
+            stopBleScan()
+            val selectedDeviceString = deviceListAdapter.getItem(position) ?: return@setOnItemClickListener
+            val deviceAddress = selectedDeviceString.substringAfterLast("\n")
+
+            // Save the device address and name
+            with(sharedPreferences.edit()) {
+                putString("device_address", deviceAddress)
+                putString("device_name", selectedDeviceString.substringBefore("\n"))
+                // Use commit() for a synchronous save to prevent race conditions before starting the next activity
+                commit()
+            }
+
+            // Start the DeviceActivity
+            val intent = Intent(this, DeviceActivity::class.java)
+            startActivity(intent)
+            finish()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (!bluetoothAdapter.isEnabled) {
+            // Consider prompting user to enable Bluetooth
+            Toast.makeText(this, "Please enable Bluetooth", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // --- Permissions Handling ---
+
+    private fun checkAndRequestPermissions() {
+        val missingPermissions = requiredPermissions.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (missingPermissions.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, missingPermissions.toTypedArray(), PERMISSIONS_REQUEST_CODE)
+        } else {
+            // Permissions are already granted, proceed with scan
+            performBleScan()
+        }
+    }
+
+    // --- BLE Scanning Logic ---
+
+    private fun startBleScan() {
+        if (requiredPermissions.any { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }) {
+            ActivityCompat.requestPermissions(this, requiredPermissions, PERMISSIONS_REQUEST_CODE)
+            return
+        }
+        performScan()
+    }
+    private fun performScan() {
+        if (isScanning) return
+        discoveredDevices.clear()
+        deviceListAdapter.clear()
+
+        handler.postDelayed({ stopBleScan() }, SCAN_PERIOD)
+        isScanning = true
+        scanButton.text = "Stop Scan"
+        if(ActivityCompat.checkSelfPermission(this, requiredPermissions.first()) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Permissions are not granted.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        bleScanner.startScan(null, scanSettings, scanCallback)
+    }
+    private fun performBleScan() {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                requiredPermissions.first() // Check first permission as a proxy
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // This should not happen if checkAndRequestPermissions is called first, but it's a safe check.
+            Toast.makeText(this, "Permissions are not granted.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (isScanning) return // Already scanning
+
+        // Stop scanning after a defined period.
+        handler.postDelayed({
+            stopBleScan()
+        }, SCAN_PERIOD)
+
+        isScanning = true
+        scanButton.text = "Stop Scan"
+        bleScanner.startScan(null, scanSettings, scanCallback)
+        Toast.makeText(this, "Scanning started...", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun stopBleScan() {
+        if (!isScanning) return // Already stopped
+
+        isScanning = false
+        scanButton.text = "Start Scan"
+        if (ActivityCompat.checkSelfPermission(this, requiredPermissions.first()) == PackageManager.PERMISSION_GRANTED) {
+            bleScanner.stopScan(scanCallback)
+        }
+        Toast.makeText(this, "Scanning stopped.", Toast.LENGTH_SHORT).show()
+    }
+
+    private val scanSettings = ScanSettings.Builder()
+        .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+        .build()
+
+    private val scanCallback = object : ScanCallback() {
+        override fun onScanResult(callbackType: Int, result: ScanResult) {
+            if (!discoveredDevices.containsKey(result.device.address)) {
+                // We need BLUETOOTH_CONNECT permission for the device name on newer Android versions
+                val deviceName = if (ActivityCompat.checkSelfPermission(this@MainActivity, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                    result.device.name ?: "Unnamed"
+                } else {
+                    "Unnamed" // Or handle the lack of permission appropriately
+                }
+
+                // Extract other necessary data from 'result' for ScanResultData
+                // For now, I'll use placeholders for rawHexData and asciiData
+                // You'll need to implement the logic to get this data from the ScanResult
+                // For example, from result.scanRecord?.bytes
+                val rawHexData = result.scanRecord?.bytes?.joinToString("") { "%02X".format(it) } ?: "N/A"
+                val asciiData = result.scanRecord?.bytes?.map { it.toInt().toChar() }?.joinToString("") ?: "N/A" // Simplified, might need filtering for printable chars
+
+
+                // Create an instance of ScanResultData
+                val scanResultData = ScanResultData(
+                    deviceName = deviceName,
+                    deviceAddress = result.device.address,
+                    rawHexData = rawHexData, // Replace with actual data extraction
+                    asciiData = asciiData    // Replace with actual data extraction
+                )
+
+                // Store the ScanResultData instance in the map
+                discoveredDevices[result.device.address] = scanResultData
+
+                deviceListAdapter.add("$deviceName\n${result.device.address}")
+                deviceListAdapter.notifyDataSetChanged()
+            }
+        }
+
+        override fun onScanFailed(errorCode: Int) {
+            Log.e("ScanCallback", "onScanFailed: code $errorCode")
+        }
+    }
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == PERMISSIONS_REQUEST_CODE) {
+            if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                performScan()
+            } else {
+                Toast.makeText(this, "Permissions are required for scanning.", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+}
+
+// --- Data Class and Custom Adapter ---
+
+/**
+ * Data class to hold the processed information from a scan result.
+ */
+data class ScanResultData(
+    val deviceName: String,
+    val deviceAddress: String,
+    val rawHexData: String,
+    val asciiData: String
+)
+
+/**
+ * Custom adapter to display the scan results in a more detailed format.
+ */
+class DeviceListAdapter(
+    context: Context,
+    private var dataSource: List<ScanResultData>
+) : ArrayAdapter<ScanResultData>(context, android.R.layout.simple_list_item_2, dataSource) {
+
+    fun updateData(newData: List<ScanResultData>) {
+        this.dataSource = newData
+        notifyDataSetChanged()
+    }
+
+    override fun getCount(): Int {
+        return dataSource.size
+    }
+
+    override fun getItem(position: Int): ScanResultData? {
+        return dataSource[position]
+    }
+
+    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+        val view: View
+        val viewHolder: ViewHolder
+
+        if (convertView == null) {
+            view = View.inflate(context, android.R.layout.simple_list_item_2, null)
+            viewHolder = ViewHolder(
+                view.findViewById(android.R.id.text1),
+                view.findViewById(android.R.id.text2)
+            )
+            view.tag = viewHolder
+        } else {
+            view = convertView
+            viewHolder = view.tag as ViewHolder
+        }
+
+        val item = getItem(position)
+        val deviceName = item?.deviceName ?: "Unknown"
+        val deviceAddress = item?.deviceAddress ?: "No Address"
+
+        viewHolder.text1.text = "$deviceName ($deviceAddress)"
+        viewHolder.text2.text = "ASCII: ${item?.asciiData}"
+        viewHolder.text2.textSize = 12f // Make detail text smaller
+
+        return view
+    }
+
+    private class ViewHolder(val text1: TextView, val text2: TextView)
+}
