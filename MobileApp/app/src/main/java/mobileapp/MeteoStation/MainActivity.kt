@@ -40,7 +40,7 @@ class MainActivity : AppCompatActivity() {
     // --- UI Properties ---
     private lateinit var scanButton: Button
     private lateinit var deviceListView: ListView
-    private lateinit var deviceListAdapter: ArrayAdapter<String>
+    private lateinit var deviceListAdapter: DeviceListAdapter
 
     // --- Data & State Properties ---
     private val discoveredDevices = mutableMapOf<String, ScanResultData>()
@@ -78,7 +78,7 @@ class MainActivity : AppCompatActivity() {
         deviceListView = findViewById(R.id.deviceListView)
 
         // Setup the custom adapter for the list view
-        deviceListAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, mutableListOf())
+        deviceListAdapter = DeviceListAdapter(this, mutableListOf())
         deviceListView.adapter = deviceListAdapter
 
         scanButton.setOnClickListener {
@@ -90,13 +90,14 @@ class MainActivity : AppCompatActivity() {
         }
         deviceListView.setOnItemClickListener { _, _, position, _ ->
             stopBleScan()
-            val selectedDeviceString = deviceListAdapter.getItem(position) ?: return@setOnItemClickListener
-            val deviceAddress = selectedDeviceString.substringAfterLast("\n")
+            val selectedDevice = deviceListAdapter.getItem(position) ?: return@setOnItemClickListener
+            val deviceAddress = selectedDevice.deviceAddress
+            val deviceName = selectedDevice.deviceName
 
             // Save the device address and name
             with(sharedPreferences.edit()) {
                 putString("device_address", deviceAddress)
-                putString("device_name", selectedDeviceString.substringBefore("\n"))
+                putString("device_name", deviceName)
                 // Use commit() for a synchronous save to prevent race conditions before starting the next activity
                 commit()
             }
@@ -178,9 +179,7 @@ class MainActivity : AppCompatActivity() {
 
                 // Store the ScanResultData instance in the map
                 discoveredDevices[result.device.address] = scanResultData
-
-                deviceListAdapter.add("$deviceName\n${result.device.address}")
-                deviceListAdapter.notifyDataSetChanged()
+                deviceListAdapter.add(scanResultData)
             }
         }
 
@@ -201,7 +200,6 @@ class MainActivity : AppCompatActivity() {
 }
 
 // --- Data Class and Custom Adapter ---
-
 /**
  * Data class to hold the processed information from a scan result.
  */
@@ -218,6 +216,14 @@ class DeviceListAdapter(
     private var dataSource: List<ScanResultData>
 ) : ArrayAdapter<ScanResultData>(context, android.R.layout.simple_list_item_2, dataSource) {
 
+    override fun clear() {
+        this.dataSource = emptyList()
+        notifyDataSetChanged()
+    }
+    fun add(item: ScanResultData) {
+        this.dataSource = this.dataSource + item
+        notifyDataSetChanged()
+    }
     fun updateData(newData: List<ScanResultData>) {
         this.dataSource = newData
         notifyDataSetChanged()
@@ -251,8 +257,10 @@ class DeviceListAdapter(
         val deviceName = item?.deviceName ?: "Unknown"
         val deviceAddress = item?.deviceAddress ?: "No Address"
 
-        viewHolder.text1.text = "$deviceName ($deviceAddress)"
-        viewHolder.text2.text = "Address: $deviceAddress"
+        viewHolder.text1.text = "$deviceName"
+        viewHolder.text1.textSize = 22f
+        viewHolder.text2.text = "$deviceAddress"
+        viewHolder.text2.textSize = 12f
         return view
     }
 
