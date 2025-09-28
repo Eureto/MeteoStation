@@ -28,7 +28,7 @@ import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
 
-    // --- Bluetooth & Scanning Properties ---
+    // Bluetooth & Scanning Properties
     private val bluetoothAdapter: BluetoothAdapter by lazy {
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothManager.adapter
@@ -37,16 +37,16 @@ class MainActivity : AppCompatActivity() {
     private var isScanning = false
     private val handler = Handler(Looper.getMainLooper())
 
-    // --- UI Properties ---
+    //  UI Properties
     private lateinit var scanButton: Button
     private lateinit var deviceListView: ListView
     private lateinit var deviceListAdapter: DeviceListAdapter
 
-    // --- Data & State Properties ---
+    // Data & State Properties
     private val discoveredDevices = mutableMapOf<String, ScanResultData>()
     private val SCAN_PERIOD: Long = 10000 // Stops scanning after 10 seconds.
     private lateinit var sharedPreferences: SharedPreferences
-    // --- Permissions ---
+    // Permissions
     private val PERMISSIONS_REQUEST_CODE = 101
     private val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         arrayOf(
@@ -117,8 +117,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // --- BLE Scanning Logic ---
-
+    // BLE Scanning Logic
     private fun startBleScan() {
         if (requiredPermissions.any { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }) {
             ActivityCompat.requestPermissions(this, requiredPermissions, PERMISSIONS_REQUEST_CODE)
@@ -199,7 +198,7 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
-// --- Data Class and Custom Adapter ---
+// Data Class and Custom Adapter
 /**
  * Data class to hold the processed information from a scan result.
  */

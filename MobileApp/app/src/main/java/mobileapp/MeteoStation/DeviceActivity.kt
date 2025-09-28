@@ -42,8 +42,8 @@ class DeviceActivity : AppCompatActivity() {
     private val bleScanner by lazy { bluetoothAdapter.bluetoothLeScanner }
     private var isScanning = false
     private val handler = Handler(Looper.getMainLooper())
-    private val REFRESH_INTERVAL: Long = 5000 // 5 seconds
-    private val SCAN_DURATION: Long = 2000 // Scan for 2 seconds
+    private val REFRESH_INTERVAL: Long = 8000
+    private val SCAN_DURATION: Long = 2000
 
     // --- Device Info ---
     private var deviceAddress: String? = null
@@ -53,6 +53,7 @@ class DeviceActivity : AppCompatActivity() {
     // --- UI Elements ---
     private lateinit var deviceNameLabel: TextView
     private lateinit var connectionStatusLabel: TextView
+    private lateinit var lastUpdateLabel: TextView
     private lateinit var temperatureLabel: TextView
     private lateinit var humidityLabel: TextView
     private lateinit var pressureLabel: TextView
@@ -95,6 +96,7 @@ class DeviceActivity : AppCompatActivity() {
 
     private fun initializeUI() {
         deviceNameLabel = findViewById(R.id.deviceNameLabel)
+        lastUpdateLabel = findViewById(R.id.lastUpdateLabel)
         connectionStatusLabel = findViewById(R.id.connectionStatusLabel)
         temperatureLabel = findViewById(R.id.temperatureLabel)
         humidityLabel = findViewById(R.id.humidityLabel)
@@ -118,8 +120,8 @@ class DeviceActivity : AppCompatActivity() {
 
     private val periodicScanRunnable = object : Runnable {
         override fun run() {
-            startTargetedScan()
-            handler.postDelayed(this, REFRESH_INTERVAL)
+            if(!isScanning){startTargetedScan()}
+            handler.postDelayed(this, REFRESH_INTERVAL) //TODO: check how it works, too many instances of runnable i think.
         }
     }
 
@@ -186,7 +188,7 @@ class DeviceActivity : AppCompatActivity() {
 
         override fun onScanFailed(errorCode: Int) {
             Log.e("DeviceActivity", "Scan Failed with code: $errorCode")
-            connectionStatusLabel.text = "Status: Scanning..."
+            connectionStatusLabel.text = "Status: Searching..."
         }
     }
 
@@ -247,7 +249,7 @@ class DeviceActivity : AppCompatActivity() {
         humidityLabel.text = String.format("%.2f %%", hum)
         pressureLabel.text = String.format("%.1f hPa", pres)
         val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-        connectionStatusLabel.text = "Status: Updated $currentTime"
+        lastUpdateLabel.text = "Last Update: $currentTime"
 
         dataCounter++
         tempData.add(Entry(dataCounter, temp))

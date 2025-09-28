@@ -17,6 +17,12 @@
         android:textStyle="bold" />
 
     <TextView
+        android:id="@+id/lastUpdateLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Last Update: xx:xx:xx" />
+
+    <TextView
         android:id="@+id/connectionStatusLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
