@@ -116,21 +116,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // --- Permissions Handling ---
-
-    private fun checkAndRequestPermissions() {
-        val missingPermissions = requiredPermissions.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }
-
-        if (missingPermissions.isNotEmpty()) {
-            ActivityCompat.requestPermissions(this, missingPermissions.toTypedArray(), PERMISSIONS_REQUEST_CODE)
-        } else {
-            // Permissions are already granted, proceed with scan
-            performBleScan()
-        }
-    }
-
     // --- BLE Scanning Logic ---
 
     private fun startBleScan() {
@@ -141,6 +126,11 @@ class MainActivity : AppCompatActivity() {
         performScan()
     }
     private fun performScan() {
+
+        if(ActivityCompat.checkSelfPermission(this, requiredPermissions.first()) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Permissions are not granted.", Toast.LENGTH_SHORT).show()
+            return
+        }
         if (isScanning) return
         discoveredDevices.clear()
         deviceListAdapter.clear()
@@ -148,36 +138,8 @@ class MainActivity : AppCompatActivity() {
         handler.postDelayed({ stopBleScan() }, SCAN_PERIOD)
         isScanning = true
         scanButton.text = "Stop Scan"
-        if(ActivityCompat.checkSelfPermission(this, requiredPermissions.first()) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "Permissions are not granted.", Toast.LENGTH_SHORT).show()
-            return
-        }
         bleScanner.startScan(null, scanSettings, scanCallback)
     }
-    private fun performBleScan() {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                requiredPermissions.first() // Check first permission as a proxy
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            // This should not happen if checkAndRequestPermissions is called first, but it's a safe check.
-            Toast.makeText(this, "Permissions are not granted.", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        if (isScanning) return // Already scanning
-
-        // Stop scanning after a defined period.
-        handler.postDelayed({
-            stopBleScan()
-        }, SCAN_PERIOD)
-
-        isScanning = true
-        scanButton.text = "Stop Scan"
-        bleScanner.startScan(null, scanSettings, scanCallback)
-        Toast.makeText(this, "Scanning started...", Toast.LENGTH_SHORT).show()
-    }
-
     private fun stopBleScan() {
         if (!isScanning) return // Already stopped
 
@@ -204,20 +166,14 @@ class MainActivity : AppCompatActivity() {
                     result.device.name ?: "Unnamed"
                 }
 
-                // Extract other necessary data from 'result' for ScanResultData
-                // For now, I'll use placeholders for rawHexData and asciiData
-                // You'll need to implement the logic to get this data from the ScanResult
-                // For example, from result.scanRecord?.bytes
-                val rawHexData = result.scanRecord?.bytes?.joinToString("") { "%02X".format(it) } ?: "N/A"
-                val asciiData = result.scanRecord?.bytes?.map { it.toInt().toChar() }?.joinToString("") ?: "N/A" // Simplified, might need filtering for printable chars
+                // val rawHexData = result.scanRecord?.bytes?.joinToString("") { "%02X".format(it) } ?: "N/A"
+                // val asciiData = result.scanRecord?.bytes?.map { it.toInt().toChar() }?.joinToString("") ?: "N/A" // Simplified, might need filtering for printable chars
 
 
                 // Create an instance of ScanResultData
                 val scanResultData = ScanResultData(
                     deviceName = deviceName,
-                    deviceAddress = result.device.address,
-                    rawHexData = rawHexData, // Replace with actual data extraction
-                    asciiData = asciiData    // Replace with actual data extraction
+                    deviceAddress = result.device.address
                 )
 
                 // Store the ScanResultData instance in the map
@@ -251,14 +207,12 @@ class MainActivity : AppCompatActivity() {
  */
 data class ScanResultData(
     val deviceName: String,
-    val deviceAddress: String,
-    val rawHexData: String,
-    val asciiData: String
+    val deviceAddress: String
 )
 
 /**
  * Custom adapter to display the scan results in a more detailed format.
- */
+// */
 class DeviceListAdapter(
     context: Context,
     private var dataSource: List<ScanResultData>
@@ -298,11 +252,10 @@ class DeviceListAdapter(
         val deviceAddress = item?.deviceAddress ?: "No Address"
 
         viewHolder.text1.text = "$deviceName ($deviceAddress)"
-        viewHolder.text2.text = "ASCII: ${item?.asciiData}"
-        viewHolder.text2.textSize = 12f // Make detail text smaller
-
+        viewHolder.text2.text = "Address: $deviceAddress"
         return view
     }
 
     private class ViewHolder(val text1: TextView, val text2: TextView)
+
 }
