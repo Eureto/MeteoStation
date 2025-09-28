@@ -1,3 +1,4 @@
 TODO: 
-- Parse data from advertisement 
+ - make icon for app
+ - make text for device address not bold and smaller 
 

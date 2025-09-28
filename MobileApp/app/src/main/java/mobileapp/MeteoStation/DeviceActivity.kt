@@ -28,6 +28,7 @@ import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
+import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -179,14 +180,13 @@ class DeviceActivity : AppCompatActivity() {
             if (ActivityCompat.checkSelfPermission(this@DeviceActivity, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 return
             }
-
-            val advertisementName = result.device.name
-            processAdvertisementData(advertisementName)
+            val advertisementData = result.scanRecord?.getBytes();
+            processAdvertisementData(advertisementData)
         }
 
         override fun onScanFailed(errorCode: Int) {
             Log.e("DeviceActivity", "Scan Failed with code: $errorCode")
-            connectionStatusLabel.text = "Status: Scan error"
+            connectionStatusLabel.text = "Status: Scanning..."
         }
     }
 
@@ -207,18 +207,27 @@ class DeviceActivity : AppCompatActivity() {
     /**
      * Parses the custom string format: "Temp_25.62Hum_40.55Pres_997.0 MeteoStation"
      */
-    private fun processAdvertisementData(dataString: String?) {
-        if (dataString == null || !dataString.startsWith("Temp_")) {
-            Log.w("DataProcessing", "Advertisement data is null or in wrong format: $dataString")
-            connectionStatusLabel.text = "Status: Invalid data format"
+    private fun processAdvertisementData(data: ByteArray?) {
+
+        //Debugging
+        val hexString = data?.joinToString(" ") { String.format("%02X", it) }
+        Log.d("DeviceActivity", "Advertisement data (hex): $hexString")
+
+        if (data == null) {
+            Log.w("DataProcessing", "Advertisement data is null")
+            connectionStatusLabel.text = "Status: No data"
             return
         }
 
-        try {
+        try{
+            val dataString: String
+            dataString = String(data, StandardCharsets.UTF_8).trim()
+            Log.d("DeviceActivity", "Advertisement data (string): $dataString")
+
             val tempString = dataString.substringAfter("Temp_").substringBefore("Hum_")
             val humString = dataString.substringAfter("Hum_").substringBefore("Pres_")
             // Take the part after "Pres_" and before the first space or end of string.
-            val presString = dataString.substringAfter("Pres_").split(" ")[0]
+            val presString = dataString.substringAfter("Pres_").substringBefore("MeteoStation")
 
             val temperature = tempString.toFloatOrNull() ?: 0f
             val humidity = humString.toFloatOrNull() ?: 0f
