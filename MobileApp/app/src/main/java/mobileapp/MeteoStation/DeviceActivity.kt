@@ -42,8 +42,8 @@ class DeviceActivity : AppCompatActivity() {
     private val bleScanner by lazy { bluetoothAdapter.bluetoothLeScanner }
     private var isScanning = false
     private val handler = Handler(Looper.getMainLooper())
-    private val REFRESH_INTERVAL: Long = 8000
-    private val SCAN_DURATION: Long = 2000
+    private val REFRESH_INTERVAL: Long = 2500
+    //private val SCAN_DURATION: Long = 4000
 
     // --- Device Info ---
     private var deviceAddress: String? = null
@@ -92,6 +92,8 @@ class DeviceActivity : AppCompatActivity() {
 
         initializeUI()
         setupCharts()
+
+        startTargetedScan()
     }
 
     private fun initializeUI() {
@@ -118,40 +120,31 @@ class DeviceActivity : AppCompatActivity() {
         }
     }
 
-    private val periodicScanRunnable = object : Runnable {
-        override fun run() {
-            if(!isScanning){startTargetedScan()}
-            handler.postDelayed(this, REFRESH_INTERVAL) //TODO: check how it works, too many instances of runnable i think.
-        }
-    }
-
-    private fun checkPermissionsAndScan() {
-        val missingPermissions = requiredPermissions.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }
-
-        if (missingPermissions.isNotEmpty()) {
-            ActivityCompat.requestPermissions(this, missingPermissions.toTypedArray(), PERMISSIONS_REQUEST_CODE)
-            connectionStatusLabel.text = "Status: Waiting for permissions..."
-        } else {
-            // All permissions are granted, proceed with scan
-            startTargetedScan()
-        }
-    }
+//    private val periodicScanRunnable = object : Runnable {
+//        override fun run() {
+//            if(!isScanning){
+//                startTargetedScan()
+//                Log.i("DeviceActivity", "Periodic scan triggered" )
+//            }
+//            handler.postDelayed(this, REFRESH_INTERVAL)
+//        }
+//    }
 
     override fun onResume() {
         super.onResume()
-        handler.post(periodicScanRunnable)
+        startTargetedScan()
+    //handler.post(periodicScanRunnable)
     }
 
     override fun onPause() {
         super.onPause()
-        handler.removeCallbacks(periodicScanRunnable)
+        // handler.removeCallbacks(periodicScanRunnable)
         stopBleScan()
     }
 
     private fun startTargetedScan() {
-        if (isScanning) return
+
+        if(isScanning) return
         if (ActivityCompat.checkSelfPermission(this, requiredPermissions.first()) != PackageManager.PERMISSION_GRANTED) {
             return
         }
@@ -159,23 +152,48 @@ class DeviceActivity : AppCompatActivity() {
         val scanFilter = ScanFilter.Builder().setDeviceAddress(deviceAddress).build()
         val scanSettings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
 
+        connectionStatusLabel.text = "Status: Scanning..."
         isScanning = true
-        connectionStatusLabel.text = "Status: Searching..."
-        bleScanner.startScan(listOf(scanFilter), scanSettings, scanCallback)
 
-        handler.postDelayed({ stopBleScan() }, SCAN_DURATION)
+        // handler.postDelayed({ stopBleScan() }, SCAN_DURATION)
+        bleScanner.startScan(listOf(scanFilter), scanSettings, scanCallback)
     }
 
     private fun stopBleScan() {
         if (!isScanning) return
-        isScanning = false
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED) {
-            bleScanner.stopScan(scanCallback)
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED) {
+                    bleScanner.stopScan(scanCallback)
+                } else {
+                    Log.w("DeviceActivity", "BLUETOOTH_SCAN permission not granted when trying to stop scan (API 31+).")
+                    // The scan might have already been implicitly stopped by the system if permission was revoked.
+                }
+            } else {
+                // For API 30 and below, if the scan was started, ACCESS_FINE_LOCATION was granted.
+                // StopScan itself doesn't typically require a new permission check distinct from the one needed to start it.
+                bleScanner.stopScan(scanCallback)
+            }
+        } catch (e: SecurityException) {
+            Log.e("DeviceActivity", "SecurityException while stopping scan: ${e.message}")
+            // This might happen if permissions were revoked in a very specific way.
+        } finally {
+            connectionStatusLabel.text = "Status: Stopped Ble Scan"
+            isScanning = false
+            Log.d("DeviceActivity", "Scan stopped. isScanning = $isScanning")
+            // Update UI or state as needed
         }
     }
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
+
+            stopBleScan()
+            // after REFRESH_INTERVAL start scanning again
+            handler.postDelayed({ startTargetedScan() }, REFRESH_INTERVAL)
+
+            connectionStatusLabel.text = "Status: Device Found"
             Log.d("DeviceActivity", "Found device: ${result.device.address}")
 
             // The data is now in the device name, so we need permission to read it.
@@ -187,8 +205,11 @@ class DeviceActivity : AppCompatActivity() {
         }
 
         override fun onScanFailed(errorCode: Int) {
+            stopBleScan()
+            handler.postDelayed({startTargetedScan() }, REFRESH_INTERVAL)
+
             Log.e("DeviceActivity", "Scan Failed with code: $errorCode")
-            connectionStatusLabel.text = "Status: Searching..."
+            connectionStatusLabel.text = "Status: Scan Failed"
         }
     }
 
@@ -213,7 +234,7 @@ class DeviceActivity : AppCompatActivity() {
 
         //Debugging
         val hexString = data?.joinToString(" ") { String.format("%02X", it) }
-        Log.d("DeviceActivity", "Advertisement data (hex): $hexString")
+        //Log.d("DeviceActivity", "Advertisement data (hex): $hexString")
 
         if (data == null) {
             Log.w("DataProcessing", "Advertisement data is null")
@@ -224,7 +245,7 @@ class DeviceActivity : AppCompatActivity() {
         try{
             val dataString: String
             dataString = String(data, StandardCharsets.UTF_8).trim()
-            Log.d("DeviceActivity", "Advertisement data (string): $dataString")
+            //Log.d("DeviceActivity", "Advertisement data (string): $dataString")
 
             val tempString = dataString.substringAfter("Temp_").substringBefore("Hum_")
             val humString = dataString.substringAfter("Hum_").substringBefore("Pres_")

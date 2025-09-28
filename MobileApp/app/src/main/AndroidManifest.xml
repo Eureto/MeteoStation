@@ -16,14 +16,8 @@
 
     <!--
         Needed for BLE scanning on Android 12 (API 31) and higher.
-        You may need to add "neverForLocation" to your BLE scan settings on these APIs.
     -->
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
-
-    <!--
-        Although we are not connecting, some systems may require this permission
-        to get device details like the name during a scan.
-    -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
     <!-- Explicitly declare that the app uses BLE -->
