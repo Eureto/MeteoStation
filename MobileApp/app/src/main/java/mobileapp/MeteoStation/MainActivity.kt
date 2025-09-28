@@ -195,12 +195,16 @@ class MainActivity : AppCompatActivity() {
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
+
+            Log.d("ScanCallback", "Device found: ${result.device.address}, Name from result.device.name: ${result.device.name}, Name from scanRecord: ${result.scanRecord?.deviceName}")
+
+
             if (!discoveredDevices.containsKey(result.device.address)) {
                 // We need BLUETOOTH_CONNECT permission for the device name on newer Android versions
                 val deviceName = if (ActivityCompat.checkSelfPermission(this@MainActivity, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
                     result.device.name ?: "Unnamed"
                 } else {
-                    "Unnamed" // Or handle the lack of permission appropriately
+                    result.device.name ?: "Unnamed"
                 }
 
                 // Extract other necessary data from 'result' for ScanResultData
