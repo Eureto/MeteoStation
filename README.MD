@@ -6,6 +6,9 @@ Devices:
 - switch
 - cover
 
-App: 
-![Weather Station Dark Theme](app_dark_theme.jpg)
-![Weather Station Light Theme](app_light_theme.jpg)
+
+Screenshots of app:
+<p align="center">
+  <img src="app_dark_theme.jpg" alt="Weather Station Dark Theme"/>
+  <img src="app_light_theme.jpg" alt="Weather Station Light Theme"/>
+</p>
