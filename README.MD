@@ -9,7 +9,7 @@ Parts:
 - cover
 
 Connection:
-Sensors are communicating via i2c bus (check pinout)
+Sensors are communicating via i2c bus (check pinout) </br>
 battery charger output to gnd and 5v (through switch) pins on esp32 
 
 Compile app on android studio and install
