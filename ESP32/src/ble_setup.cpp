@@ -26,9 +26,8 @@ void initBLE() {
   
   BLEDevice::init("MeteoStation");
   
-  // Set BLE power to minimum for power saving (-12 dBm)
-  esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_N12);
-  
+  // Set BLE power to minimum for power saving (+9 dBm)
+  esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_P9); 
   pAdvertising = BLEDevice::getAdvertising();
   
   Serial.println("BLE advertising initialized!");
@@ -69,24 +68,24 @@ void broadcastSensorData() {
 //Method 2
 // Broadcasting sensor data in device name
 // this one works well and uses little power
-void broadcastInDeviceName() {
-  if (pAdvertising != nullptr) {
-    // Create device name with sensor data
-    String deviceName = "MS_" + String((int)temperature_BMP280) + "_" + String((int)((temperature_BMP280 - (int)temperature_BMP280) * 100)) + "C" + 
-                        String((int)humidity) + "_" + String((int)((humidity - (int)humidity) * 100)) + "H" + 
-                        String((int)pressure) + "_" + String((int)((pressure - (int)pressure) * 100)) + "P";
+// void broadcastInDeviceName() {
+//   if (pAdvertising != nullptr) {
+//     // Create device name with sensor data
+//     String deviceName = "MS_" + String((int)temperature_BMP280) + "_" + String((int)((temperature_BMP280 - (int)temperature_BMP280) * 100)) + "C" + 
+//                         String((int)humidity) + "_" + String((int)((humidity - (int)humidity) * 100)) + "H" + 
+//                         String((int)pressure) + "_" + String((int)((pressure - (int)pressure) * 100)) + "P";
     
-    pAdvertising->stop();
-    BLEDevice::deinit();
-    BLEDevice::init(deviceName.c_str());
+//     pAdvertising->stop();
+//     BLEDevice::deinit();
+//     BLEDevice::init(deviceName.c_str());
     
-    pAdvertising = BLEDevice::getAdvertising();
-    esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_N12);
-    pAdvertising->start();
+//     pAdvertising = BLEDevice::getAdvertising();
+//     esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_N12);
+//     pAdvertising->start();
     
-    Serial.println("Broadcasting: " + deviceName);
-  }
-}
+//     Serial.println("Broadcasting: " + deviceName);
+//   }
+// }
 
 // Method 3
 // Initialize BLE with MeteoStation service and characteristics
