@@ -1,3 +1,5 @@
+Esp project created via PlatformIO 
+
 Parts:
 - ESP32-C3 super mini
 - AHT20+BMP280 sensor (temperature, humidity and pressure)
@@ -6,7 +8,11 @@ Parts:
 - switch
 - cover
 
+Connection:
+Sensors are communicating via i2c bus (check pinout)
+battery charger output to gnd and 5v (through switch) pins on esp32 
 
+Compile app on android studio and install
 Screenshots of app:
 <p align="center">
   <img src="app_dark_theme.jpg" alt="Weather Station Dark Theme" width="250"/>
