@@ -9,6 +9,6 @@ Devices:
 
 Screenshots of app:
 <p align="center">
-  <img src="app_dark_theme.jpg" alt="Weather Station Dark Theme"/>
-  <img src="app_light_theme.jpg" alt="Weather Station Light Theme"/>
+  <img src="app_dark_theme.jpg" alt="Weather Station Dark Theme" width="250"/>
+  <img src="app_light_theme.jpg" alt="Weather Station Light Theme" width="250"/>
 </p>
