@@ -1,6 +1,7 @@
 package mobileapp.MeteoStation
 
 import android.Manifest
+import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.ScanCallback
@@ -22,6 +23,7 @@ import android.widget.Button
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -56,6 +58,8 @@ class MainActivity : AppCompatActivity() {
     } else {
         arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
     }
+
+////////////////////////////////////////////////// Bluetooth Logic ////////////////////////////////////////////////////////////////////////
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -131,6 +135,9 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Permissions are not granted.", Toast.LENGTH_SHORT).show()
             return
         }
+
+        requestBluetoothEnableIfNeeded()
+
         if (isScanning) return
         discoveredDevices.clear()
         deviceListAdapter.clear()
@@ -148,7 +155,6 @@ class MainActivity : AppCompatActivity() {
         if (ActivityCompat.checkSelfPermission(this, requiredPermissions.first()) == PackageManager.PERMISSION_GRANTED) {
             bleScanner.stopScan(scanCallback)
         }
-        Toast.makeText(this, "Scanning stopped.", Toast.LENGTH_SHORT).show()
     }
 
     private val scanSettings = ScanSettings.Builder()
@@ -196,6 +202,28 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    fun requestBluetoothEnableIfNeeded(){
+        while(!bluetoothAdapter.isEnabled)
+        {
+            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+            requestBluetoothEnable.launch(enableBtIntent)
+            // After 4 seconsds check again if bluetooth is enabled
+            Thread.sleep(4000)
+        }
+    }
+    private val requestBluetoothEnable =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                // Bluetooth was enabled by the user
+                // Proceed with your Bluetooth operations
+                Log.d("Bluetooth", "Bluetooth enabled by user.")
+            } else {
+                // User denied or cancelled enabling Bluetooth
+                Log.d("Bluetooth", "User did not enable Bluetooth.")
+                Toast.makeText(this, "Bluetooth is required to connect to device.", Toast.LENGTH_SHORT).show()
+            }
+        }
 }
 
 // Data Class and Custom Adapter

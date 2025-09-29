@@ -2,6 +2,7 @@ package mobileapp.MeteoStation
 
 
 import android.Manifest
+import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.ScanCallback
@@ -21,6 +22,8 @@ import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresPermission
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -71,12 +74,25 @@ class DeviceActivity : AppCompatActivity() {
     // --- Permissions ---
     private val PERMISSIONS_REQUEST_CODE = 102 // Use a different code than MainActivity
     private val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        // On android 12+
         arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
     } else {
         // On older APIs, connect permission is implied by admin, and scan needs location.
         arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.BLUETOOTH_ADMIN)
     }
 
+    fun handlePermissions(){
+        //while permissions are not granted, request them. Repeat until granted (interval of 2 seconds)
+        while(ActivityCompat.checkSelfPermission(this, requiredPermissions.first()) == PackageManager.PERMISSION_DENIED) {
+            // Request the missing permissions
+            ActivityCompat.requestPermissions(this, requiredPermissions, PERMISSIONS_REQUEST_CODE)
+            // Wait for 2 seconds before checking again
+            Thread.sleep(2000)
+        }
+
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.device_activity_layout)
@@ -92,32 +108,7 @@ class DeviceActivity : AppCompatActivity() {
 
         initializeUI()
         setupCharts()
-
         startTargetedScan()
-    }
-
-    private fun initializeUI() {
-        deviceNameLabel = findViewById(R.id.deviceNameLabel)
-        lastUpdateLabel = findViewById(R.id.lastUpdateLabel)
-        connectionStatusLabel = findViewById(R.id.connectionStatusLabel)
-        temperatureLabel = findViewById(R.id.temperatureLabel)
-        humidityLabel = findViewById(R.id.humidityLabel)
-        pressureLabel = findViewById(R.id.pressureLabel)
-        tempChart = findViewById(R.id.tempChart)
-        humidityChart = findViewById(R.id.humidityChart)
-        pressureChart = findViewById(R.id.pressureChart) // Initialize new chart
-        forgetDeviceButton = findViewById(R.id.forgetDeviceButton)
-
-        deviceNameLabel.text = deviceName
-
-        forgetDeviceButton.setOnClickListener {
-            with(sharedPreferences.edit()) {
-                remove("device_address")
-                remove("device_name")
-                apply()
-            }
-            goBackToScan()
-        }
     }
 
 //    private val periodicScanRunnable = object : Runnable {
@@ -130,10 +121,12 @@ class DeviceActivity : AppCompatActivity() {
 //        }
 //    }
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     override fun onResume() {
         super.onResume()
         startTargetedScan()
-    //handler.post(periodicScanRunnable)
+
+        //handler.post(periodicScanRunnable)
     }
 
     override fun onPause() {
@@ -142,12 +135,13 @@ class DeviceActivity : AppCompatActivity() {
         stopBleScan()
     }
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     private fun startTargetedScan() {
-
+        // Redundant safety check
         if(isScanning) return
-        if (ActivityCompat.checkSelfPermission(this, requiredPermissions.first()) != PackageManager.PERMISSION_GRANTED) {
-            return
-        }
+
+        handlePermissions()
+        requestBluetoothEnableIfNeeded()
 
         val scanFilter = ScanFilter.Builder().setDeviceAddress(deviceAddress).build()
         val scanSettings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
@@ -187,6 +181,7 @@ class DeviceActivity : AppCompatActivity() {
     }
 
     private val scanCallback = object : ScanCallback() {
+        @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
         override fun onScanResult(callbackType: Int, result: ScanResult) {
 
             stopBleScan()
@@ -203,7 +198,7 @@ class DeviceActivity : AppCompatActivity() {
             val advertisementData = result.scanRecord?.getBytes();
             processAdvertisementData(advertisementData)
         }
-
+        @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
         override fun onScanFailed(errorCode: Int) {
             stopBleScan()
             handler.postDelayed({startTargetedScan() }, REFRESH_INTERVAL)
@@ -217,8 +212,6 @@ class DeviceActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == PERMISSIONS_REQUEST_CODE) {
             if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                // Permissions were granted, we can now scan.
-                // The periodic runnable will trigger the next scan automatically.
                 Toast.makeText(this, "Permissions granted. Starting scan.", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(this, "Permissions are required to get device data.", Toast.LENGTH_LONG).show()
@@ -227,9 +220,56 @@ class DeviceActivity : AppCompatActivity() {
         }
     }
 
+    fun requestBluetoothEnableIfNeeded(){
+        while(!bluetoothAdapter.isEnabled)
+        {
+            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+            requestBluetoothEnable.launch(enableBtIntent)
+            // After 4 seconsds check again if bluetooth is enabled
+            Thread.sleep(4000)
+        }
+    }
+    private val requestBluetoothEnable =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                // Bluetooth was enabled by the user
+                // Proceed with your Bluetooth operations
+                Log.d("Bluetooth", "Bluetooth enabled by user.")
+            } else {
+                // User denied or cancelled enabling Bluetooth
+                Log.d("Bluetooth", "User did not enable Bluetooth.")
+                Toast.makeText(this, "Bluetooth is required to connect to device.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+    /////////////////////////////// UI & Data Processing ///////////////////////////////
     /**
      * Parses the custom string format: "Temp_25.62Hum_40.55Pres_997.0 MeteoStation"
      */
+    private fun initializeUI() {
+        deviceNameLabel = findViewById(R.id.deviceNameLabel)
+        lastUpdateLabel = findViewById(R.id.lastUpdateLabel)
+        connectionStatusLabel = findViewById(R.id.connectionStatusLabel)
+        temperatureLabel = findViewById(R.id.temperatureLabel)
+        humidityLabel = findViewById(R.id.humidityLabel)
+        pressureLabel = findViewById(R.id.pressureLabel)
+        tempChart = findViewById(R.id.tempChart)
+        humidityChart = findViewById(R.id.humidityChart)
+        pressureChart = findViewById(R.id.pressureChart) // Initialize new chart
+        forgetDeviceButton = findViewById(R.id.forgetDeviceButton)
+
+        deviceNameLabel.text = deviceName
+
+        forgetDeviceButton.setOnClickListener {
+            with(sharedPreferences.edit()) {
+                remove("device_address")
+                remove("device_name")
+                apply()
+            }
+            goBackToScan()
+        }
+    }
+
     private fun processAdvertisementData(data: ByteArray?) {
 
         //Debugging
