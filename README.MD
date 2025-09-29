@@ -9,10 +9,10 @@ Parts:
 - cover
 
 Connection:
-Sensors are communicating via i2c bus (check pinout) </br>
-battery charger output to gnd and 5v (through switch) pins on esp32 
+Sensors are communicating via i2c bus (check pinout). </br>
+Battery charger output gnd to gnd and 5v (through switch) to 5v pin on esp32 
 
-Compile app on android studio and install
+Compile app on android studio and install. </br>
 Screenshots of app:
 <p align="center">
   <img src="app_dark_theme.jpg" alt="Weather Station Dark Theme" width="250"/>
