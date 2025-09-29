@@ -5,3 +5,7 @@ Devices:
 - 2 in 1 5v battery charger
 - switch
 - cover
+
+App: 
+![Weather Station Dark Theme](app_dark_theme.jpg)
+![Weather Station Light Theme](app_light_theme.jpg)
